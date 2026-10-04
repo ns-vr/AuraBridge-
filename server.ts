@@ -1,18 +1,15 @@
 import express from "express";
 import path from "path";
-import { fileURLToPath } from "url";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: "25mb" }));
 
@@ -314,8 +311,11 @@ Respond with ONLY JSON:
     }
   });
 
-  // Vite middleware in dev or static files in production
-  if (process.env.NODE_ENV !== "production") {
+  // Serve Vite middleware only in local development, otherwise serve built production assets
+  const isDev = (process.env.NODE_ENV === "development" || process.env.npm_lifecycle_event === "dev") && !process.env.PORT;
+  const distExists = fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
+
+  if (isDev || !distExists) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
